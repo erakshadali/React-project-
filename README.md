@@ -1,16 +1,41 @@
-# React + Vite
+# Dreamy Pages
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A pastel, dreamy online library built with React, Vite, MUI and framer-motion.
 
-Currently, two official plugins are available:
+- **Library**: search and filter books, with a featured story on the homepage
+- **Book page**: cover, blurb, tags, chapter list, optional Wattpad link
+- **Reader**: serif reading view, font size controls, previous/next, 18+ age confirmation for mature books
+- **Admin** (`#/admin`): add, edit and delete books; upload a cover; upload a full book
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Uploading a full book
 
-## React Compiler
+1. Open `#/admin`, sign in, click **+ Add book**.
+2. Fill in title, author, genres, tags and blurb, and upload a cover.
+3. Upload the manuscript:
+   - one `.txt` / `.md` file: split into chapters at lines like `Chapter 1`, `Part 2`, `Prologue`, `Epilogue` or `# Heading`
+   - several files: one chapter per file (sorted by file name)
+   - or paste the text and click **Add pasted text as chapters**
+4. Rename or remove chapters, then **Save book**.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+For Word/PDF manuscripts, save or copy the text into a `.txt` file first.
 
-## Expanding the ESLint configuration
+## Backend (Supabase)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+With Supabase configured, books, chapters and covers are shared by every visitor, and the admin signs in with a real account.
+
+1. Create a Supabase project and run `supabase/migrations/20261028000000_books.sql` (SQL editor, or `supabase db push`).
+   It creates the `books`, `chapters` and `admins` tables, row-level security (everyone reads, only admins write),
+   a public `covers` storage bucket, and the first book.
+2. In Authentication, create your admin user (email + password), then make them an admin in the SQL editor:
+   `insert into public.admins (user_id) select id from auth.users where email = 'you@example.com';`
+3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
+   (Project Settings → API). Restart `npm run dev`.
+
+## Local-only mode
+
+Without those variables the site stores books in the browser (IndexedDB), visible only on that device.
+The admin password is `VITE_ADMIN_PASSWORD` (default `dreamy123`) and is a client-side gate, not real security.
+
+## Scripts
+
+`npm run dev`, `npm run build`, `npm run lint`
