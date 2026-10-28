@@ -52,6 +52,7 @@ function BookForm({ initial, onSave, onCancel }) {
   const [manuscript, setManuscript] = useState('')
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
+  const [headingAtEnd, setHeadingAtEnd] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef()
   const set = (k) => (e) => setBook({ ...book, [k]: e.target.value })
@@ -67,7 +68,7 @@ function BookForm({ initial, onSave, onCancel }) {
     if (!files.length) return
     const read = await Promise.all(files.map(readTextFile))
     const chapters = read.length === 1
-      ? splitChapters(read[0].text)
+      ? splitChapters(read[0].text, { headingAtEnd })
       : read.map((r) => ({ title: r.name, content: r.text.trim() }))
     setBook((b) => ({ ...b, chapters: [...b.chapters, ...chapters] }))
     setMsg(`Added ${chapters.length} chapter(s) from ${files.length} file(s).`)
@@ -75,7 +76,7 @@ function BookForm({ initial, onSave, onCancel }) {
   }
 
   const addPasted = () => {
-    const chapters = splitChapters(manuscript)
+    const chapters = splitChapters(manuscript, { headingAtEnd })
     setBook((b) => ({ ...b, chapters: [...b.chapters, ...chapters] }))
     setMsg(`Added ${chapters.length} chapter(s) from pasted text.`)
     setManuscript('')
@@ -130,8 +131,10 @@ function BookForm({ initial, onSave, onCancel }) {
         <Alert severity="info">
           Upload one <b>.txt</b> or <b>.md</b> file with the whole book — it is split into chapters wherever a line starts with
           “Chapter …”, “Part …”, “Prologue”, “Epilogue” or a “# Heading”. Or select several files and each becomes one chapter.
-          For a Word/PDF book, copy the text into a .txt file or paste it below.
+          WhatsApp chat exports work too: the timestamp on each message is removed. For a Word/PDF book, copy the text into a .txt file or paste it below.
         </Alert>
+        <FormControlLabel control={<Checkbox checked={headingAtEnd} onChange={(e) => setHeadingAtEnd(e.target.checked)} />}
+          label="“Chapter N” comes at the END of each chapter (e.g. a WhatsApp chat export)" />
         <Box>
           <Button variant="contained" onClick={() => fileRef.current.click()}>Choose .txt / .md file(s)</Button>
           <input ref={fileRef} hidden multiple type="file" accept=".txt,.md,text/plain,text/markdown" onChange={onFiles} />

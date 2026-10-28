@@ -2,8 +2,15 @@
 // "Part 3", "Prologue", "Epilogue" or a markdown "# Heading" starts a new chapter.
 const HEADING = /^\s*(?:#{1,3}\s+(.+)|((?:chapter|part)\s+[\w-]+.*)|(prologue|epilogue|prolog)\b.*)$/i
 
-export function splitChapters(text) {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n')
+// Removes the "[28/10, 16:03] name: " prefix that WhatsApp's "Export chat" puts on every message.
+const CHAT_PREFIX = /^\[\d{1,2}\/\d{1,2}(?:\/\d{2,4})?,? \d{1,2}:\d{2}(?::\d{2})?(?: ?[AP]M)?\] [^:\n]{1,40}: ?/gim
+
+export const cleanChatExport = (text) => text.replace(CHAT_PREFIX, '')
+
+// headingAtEnd: the "Chapter N" line closes the chapter above it instead of opening the one below
+// (the layout of a chat export where the label is sent after the text).
+export function splitChapters(text, { headingAtEnd = false } = {}) {
+  const lines = cleanChatExport(text).replace(/\r\n?/g, '\n').split('\n')
   const chapters = []
   let current = null
 
@@ -13,11 +20,16 @@ export function splitChapters(text) {
 
   for (const line of lines) {
     const m = line.length < 90 && HEADING.exec(line)
-    if (m) {
+    const title = m && (m[1] || m[2] || m[3] || line).trim()
+    if (m && headingAtEnd) {
+      if (current) current.title = title
       push()
-      current = { title: (m[1] || m[2] || m[3] || line).trim(), content: '' }
+      current = null
+    } else if (m) {
+      push()
+      current = { title, content: '' }
     } else {
-      if (!current) current = { title: 'Chapter 1', content: '' }
+      if (!current) current = { title: `Chapter ${chapters.length + 1}`, content: '' }
       current.content += `${line}\n`
     }
   }
