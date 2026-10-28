@@ -28,7 +28,7 @@ With Supabase configured, books, chapters and covers are shared by every visitor
    a public `covers` storage bucket, and the first book.
 2. In Authentication, create your admin user (email + password), then make them an admin in the SQL editor:
    `insert into public.admins (user_id) select id from auth.users where email = 'you@example.com';`
-3. Copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
+3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
    (Project Settings → API). Restart `npm run dev`.
 
 ## Local-only mode
