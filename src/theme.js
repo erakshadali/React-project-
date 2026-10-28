@@ -1,48 +1,43 @@
 import { createTheme } from '@mui/material/styles'
 
 export const palette = {
-  green: '#1B3A2B',
-  greenDark: '#0F241A',
-  amber: '#D9A441',
-  cream: '#FAF6EE',
-  charcoal: '#212121',
-  coral: '#E8785A',
+  lavender: '#C9B8F0',
+  lavenderDeep: '#8F78D6',
+  pink: '#F9C6DA',
+  peach: '#FFDCC8',
+  mint: '#CDEEDF',
+  sky: '#CFE4F8',
+  cream: '#FFF8FB',
+  ink: '#4A3F63',
 }
 
 export function getTheme(mode) {
-  const isDark = mode === 'dark'
+  const dark = mode === 'dark'
+  const serif = '"Cormorant Garamond", "Playfair Display", serif'
 
   return createTheme({
     palette: {
       mode,
-      primary: { main: palette.green, light: '#2E5540', dark: palette.greenDark },
-      secondary: { main: palette.amber },
-      background: {
-        default: isDark ? '#10201A' : palette.cream,
-        paper: isDark ? '#16281F' : '#FFFFFF',
-      },
-      text: {
-        primary: isDark ? '#F3EEE2' : palette.charcoal,
-        secondary: isDark ? '#C7D6CC' : '#5B5B5B',
-      },
-      error: { main: palette.coral },
+      primary: { main: palette.lavenderDeep },
+      secondary: { main: '#E58FB4' },
+      background: { default: dark ? '#1E1A2E' : palette.cream, paper: dark ? '#2A2440' : '#FFFFFF' },
+      text: { primary: dark ? '#F1EBFF' : palette.ink, secondary: dark ? '#C9BEE6' : '#7C7196' },
     },
     typography: {
-      fontFamily: '"Inter", "Manrope", sans-serif',
-      h1: { fontFamily: '"Fraunces", "Playfair Display", serif', fontWeight: 600 },
-      h2: { fontFamily: '"Fraunces", "Playfair Display", serif', fontWeight: 600 },
-      h3: { fontFamily: '"Fraunces", "Playfair Display", serif', fontWeight: 600 },
-      h4: { fontFamily: '"Fraunces", "Playfair Display", serif', fontWeight: 600 },
-      h5: { fontFamily: '"Fraunces", "Playfair Display", serif', fontWeight: 600 },
-      button: { textTransform: 'none', fontWeight: 600 },
+      fontFamily: '"Quicksand", sans-serif',
+      h1: { fontFamily: serif, fontWeight: 700 },
+      h2: { fontFamily: serif, fontWeight: 700 },
+      h3: { fontFamily: serif, fontWeight: 700 },
+      h4: { fontFamily: serif, fontWeight: 700 },
+      h5: { fontFamily: serif, fontWeight: 700 },
+      h6: { fontFamily: serif, fontWeight: 700 },
+      button: { textTransform: 'none', fontWeight: 700 },
     },
-    shape: { borderRadius: 14 },
+    shape: { borderRadius: 18 },
     components: {
-      MuiButton: {
-        styleOverrides: {
-          root: { borderRadius: 999, paddingLeft: 24, paddingRight: 24 },
-        },
-      },
+      MuiButton: { styleOverrides: { root: { borderRadius: 999, paddingInline: 24 } } },
+      MuiChip: { styleOverrides: { root: { fontWeight: 600 } } },
+      MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
     },
   })
 }
