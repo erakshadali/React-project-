@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Button, Container, IconButton, Typography } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import TextIncreaseIcon from '@mui/icons-material/TextIncrease'
 import TextDecreaseIcon from '@mui/icons-material/TextDecrease'
 import { useBooks } from '../lib/booksContext'
+import { backend } from '../lib/backend'
 import { href } from '../lib/router'
 
 export default function Reader({ id, index }) {
@@ -11,14 +12,20 @@ export default function Reader({ id, index }) {
   const [size, setSize] = useState(() => Number(localStorage.getItem('fontSize')) || 19)
   const [adult, setAdult] = useState(() => sessionStorage.getItem('adult') === 'yes')
 
+  const [loaded, setLoaded] = useState({ key: '', chapter: null })
   const book = books.find((b) => b.id === id)
-  const chapter = book?.chapters[index]
+  const key = `${id}/${index}`
+  const chapter = loaded.key === key ? loaded.chapter : null
+  const adultOk = !book?.mature || adult
 
-  if (!book || !chapter) {
-    return <Container sx={{ py: 10 }}><Typography>{ready ? 'This part was not found.' : 'Loading…'}</Typography></Container>
-  }
+  useEffect(() => {
+    if (!book || !adultOk) return
+    let cancelled = false
+    backend.getChapter(id, index).then((c) => !cancelled && setLoaded({ key, chapter: c }))
+    return () => { cancelled = true }
+  }, [id, index, key, book, adultOk])
 
-  if (book.mature && !adult) {
+  if (book && book.mature && !adult) {
     return (
       <Container maxWidth="sm" sx={{ py: 10, textAlign: 'center' }}>
         <Typography variant="h3" gutterBottom>18+ content</Typography>
@@ -30,6 +37,11 @@ export default function Reader({ id, index }) {
         <Button variant="outlined" size="large" href={href()}>Take me back</Button>
       </Container>
     )
+  }
+
+  if (!book || !chapter) {
+    const missing = ready && (!book || index >= book.chapters.length || index < 0)
+    return <Container sx={{ py: 10 }}><Typography>{missing ? 'This part was not found.' : 'Loading…'}</Typography></Container>
   }
 
   const zoom = (d) => {

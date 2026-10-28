@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Alert, Box, Button, Checkbox, Container, FormControlLabel, IconButton, List, ListItem,
   ListItemText, Paper, Stack, TextField, Typography,
@@ -7,10 +7,8 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import EditIcon from '@mui/icons-material/EditOutlined'
 import { useBooks, slugify } from '../lib/booksContext'
 import { href } from '../lib/router'
+import { backend } from '../lib/backend'
 import { imageToDataUrl, readTextFile, splitChapters } from '../lib/parseBook'
-
-// Client-side gate only: it keeps casual visitors out but is NOT real security.
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'dreamy123'
 
 const emptyBook = () => ({
   id: '', title: '', author: '', cover: '', genres: [], tags: [], mature: false,
@@ -19,18 +17,29 @@ const emptyBook = () => ({
 const csv = (s) => s.split(',').map((x) => x.trim()).filter(Boolean)
 
 function Login({ onOk }) {
+  const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
-  const [bad, setBad] = useState(false)
-  const submit = (e) => {
+  const [error, setError] = useState('')
+  const needsEmail = backend.mode === 'supabase'
+  const submit = async (e) => {
     e.preventDefault()
-    if (pw === ADMIN_PASSWORD) { sessionStorage.setItem('admin', 'yes'); onOk() } else setBad(true)
+    try {
+      await backend.signIn(email, pw)
+      onOk()
+    } catch (err) {
+      setError(err.message)
+    }
   }
   return (
     <Container maxWidth="xs" sx={{ py: 10 }}>
       <Paper component="form" onSubmit={submit} sx={{ p: 4, borderRadius: '28px' }}>
         <Typography variant="h4" gutterBottom>Admin login</Typography>
-        <TextField fullWidth type="password" label="Password" value={pw} onChange={(e) => setPw(e.target.value)} error={bad} helperText={bad ? 'Wrong password' : ''} />
-        <Button type="submit" variant="contained" fullWidth sx={{ mt: 3 }}>Enter</Button>
+        <Stack spacing={2}>
+          {needsEmail && <TextField fullWidth type="email" label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />}
+          <TextField fullWidth type="password" label="Password" value={pw} onChange={(e) => setPw(e.target.value)} />
+          {error && <Alert severity="error">{error}</Alert>}
+          <Button type="submit" variant="contained" fullWidth>Enter</Button>
+        </Stack>
       </Paper>
     </Container>
   )
@@ -42,6 +51,8 @@ function BookForm({ initial, onSave, onCancel }) {
   const [tags, setTags] = useState(initial.tags.join(', '))
   const [manuscript, setManuscript] = useState('')
   const [msg, setMsg] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const fileRef = useRef()
   const set = (k) => (e) => setBook({ ...book, [k]: e.target.value })
 
@@ -74,16 +85,23 @@ function BookForm({ initial, onSave, onCancel }) {
     setBook((b) => ({ ...b, chapters: b.chapters.map((c, j) => (j === i ? { ...c, ...patch } : c)) }))
   const removeChapter = (i) => setBook((b) => ({ ...b, chapters: b.chapters.filter((_, j) => j !== i) }))
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    onSave({
-      ...book,
-      id: book.id || slugify(book.title),
-      genres: csv(genres),
-      tags: csv(tags).map((t) => t.replace(/^#/, '')),
-      cover: book.cover || '',
-      createdAt: book.createdAt || Date.now(),
-    })
+    setSaving(true)
+    setError('')
+    try {
+      await onSave({
+        ...book,
+        id: book.id || slugify(book.title),
+        genres: csv(genres),
+        tags: csv(tags).map((t) => t.replace(/^#/, '')),
+        cover: book.cover || '',
+        createdAt: book.createdAt || Date.now(),
+      })
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
   }
 
   return (
@@ -132,8 +150,9 @@ function BookForm({ initial, onSave, onCancel }) {
           ))}
         </List>
 
+        {error && <Alert severity="error">{error}</Alert>}
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button type="submit" variant="contained" size="large">Save book</Button>
+          <Button type="submit" variant="contained" size="large" disabled={saving}>{saving ? 'Saving…' : 'Save book'}</Button>
           <Button onClick={onCancel} size="large">Cancel</Button>
         </Box>
       </Stack>
@@ -143,18 +162,39 @@ function BookForm({ initial, onSave, onCancel }) {
 
 export default function Admin() {
   const { books, saveBook, deleteBook } = useBooks()
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem('admin') === 'yes')
+  const [authed, setAuthed] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [error, setError] = useState('')
 
+  useEffect(() => {
+    backend.isAdmin().then(setAuthed)
+  }, [])
+
+  if (authed === null) return null
   if (!authed) return <Login onOk={() => setAuthed(true)} />
+
+  const edit = async (b) => {
+    try {
+      setEditing(await backend.getBook(b.id))
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  const remove = async (b) => {
+    if (!window.confirm(`Delete “${b.title}”?`)) return
+    try {
+      await deleteBook(b.id)
+    } catch (e) {
+      setError(e.message)
+    }
+  }
 
   if (editing) {
     return (
       <Container maxWidth="md" sx={{ py: 6 }}>
         <BookForm initial={editing} onCancel={() => setEditing(null)}
           onSave={async (b) => {
-            // Only one featured book at a time.
-            if (b.featured) await Promise.all(books.filter((x) => x.featured && x.id !== b.id).map((x) => saveBook({ ...x, featured: false })))
             await saveBook(b)
             setEditing(null)
           }} />
@@ -164,17 +204,19 @@ export default function Admin() {
 
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <Typography variant="h3" sx={{ flexGrow: 1 }}>Admin</Typography>
+        <Button onClick={() => backend.signOut().then(() => setAuthed(false))}>Sign out</Button>
         <Button variant="contained" onClick={() => setEditing(emptyBook())}>+ Add book</Button>
       </Box>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <Paper sx={{ borderRadius: '20px' }}>
         <List>
           {books.map((b) => (
             <ListItem key={b.id} divider
               secondaryAction={<>
-                <IconButton onClick={() => setEditing(b)} aria-label="Edit"><EditIcon /></IconButton>
-                <IconButton onClick={() => window.confirm(`Delete “${b.title}”?`) && deleteBook(b.id)} aria-label="Delete"><DeleteIcon /></IconButton>
+                <IconButton onClick={() => edit(b)} aria-label="Edit"><EditIcon /></IconButton>
+                <IconButton onClick={() => remove(b)} aria-label="Delete"><DeleteIcon /></IconButton>
               </>}>
               <ListItemText primary={<a href={href('book', b.id)} style={{ color: 'inherit' }}>{b.title}</a>} secondary={`${b.author} · ${b.chapters.length} chapters`} />
             </ListItem>

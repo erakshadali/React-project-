@@ -11,7 +11,7 @@ export default function BookPage({ id }) {
     return <Container sx={{ py: 10 }}><Typography>{ready ? 'Book not found.' : 'Loading…'}</Typography></Container>
   }
 
-  const words = book.chapters.reduce((n, c) => n + c.content.split(/\s+/).length, 0)
+  const words = book.chapters.reduce((n, c) => n + (c.words || 0), 0)
 
   return (
     <Container maxWidth="md" sx={{ py: { xs: 4, md: 8 } }}>

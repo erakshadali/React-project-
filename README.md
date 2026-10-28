@@ -19,16 +19,22 @@ A pastel, dreamy online library built with React, Vite, MUI and framer-motion.
 
 For Word/PDF manuscripts, save or copy the text into a `.txt` file first.
 
-## Admin password
+## Backend (Supabase)
 
-Set `VITE_ADMIN_PASSWORD` in a `.env` file. The default is `dreamy123`, so change it.
+With Supabase configured, books, chapters and covers are shared by every visitor, and the admin signs in with a real account.
 
-## Important limitation
+1. Create a Supabase project and run `supabase/migrations/20261028000000_books.sql` (SQL editor, or `supabase db push`).
+   It creates the `books`, `chapters` and `admins` tables, row-level security (everyone reads, only admins write),
+   a public `covers` storage bucket, and the first book.
+2. In Authentication, create your admin user (email + password), then make them an admin in the SQL editor:
+   `insert into public.admins (user_id) select id from auth.users where email = 'you@example.com';`
+3. Copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
+   (Project Settings → API). Restart `npm run dev`.
 
-Books are stored in the browser (IndexedDB), so books added in the admin are only visible on the
-device that added them. The admin login is a client-side gate, not real security. To let every
-visitor see the books and to protect the admin, move storage to a backend (e.g. Supabase: a `books`
-table plus Storage for covers, with auth for the admin).
+## Local-only mode
+
+Without those variables the site stores books in the browser (IndexedDB), visible only on that device.
+The admin password is `VITE_ADMIN_PASSWORD` (default `dreamy123`) and is a client-side gate, not real security.
 
 ## Scripts
 
