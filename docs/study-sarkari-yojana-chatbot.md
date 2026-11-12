@@ -95,3 +95,49 @@ help and scam warnings.
 - Target state(s) first?
 - Who verifies scheme data regularly?
 - Free public tool, or for CSC operators / NGOs?
+
+---
+
+## 13. Extension: State-wise Laws module (all-India)
+
+Goal: user selects a state, then asks about any law (challan, alcohol, tobacco,
+consumer, FIR, RTI, cyber, property...). Same app as the scheme finder; only
+the topic changes (Yojana vs Kanoon).
+
+### 13.1 Three layers of law
+| Layer | Examples | Data effort |
+|---|---|---|
+| Central | BNS, BNSS, BSA, Motor Vehicles Act, Consumer Protection Act, IT Act, POCSO, DV Act, RTI, COTPA | Once, applies to all states |
+| State | Excise (alcohol), lottery, stamp duty, rent control, state police acts | Per state |
+| Dynamic / local | Challan amounts, dry days, local bans | Per state, changes often |
+
+Bot first decides: is this rule central or state? Then answers from the right layer.
+
+### 13.2 Law record schema
+id, topic, level (central/state), state (null if central), title (en/hi),
+rule_summary, applies_to (age, vehicle type...), penalty, act_name,
+section (old + new numbering, e.g. IPC and BNS), source_url, notification_ref,
+effective_from, last_verified_at, verified_by.
+
+### 13.3 Challan table (special case)
+Motor Vehicles Act is central, but amounts/enforcement are notified by states.
+Table: violation, section, fine, repeat-offence fine, state, notification, date.
+
+### 13.4 Sources
+India Code (indiacode.nic.in), state gazettes, transport/excise department
+sites, Parivahan, NALSA (free legal aid). All to be verified before use.
+
+### 13.5 Answering rules
+- Answer only from verified records; show section, source, last-verified date.
+- Not in database => "not sure" + official link/helpline. Never guess.
+- Records older than 6 months show a "may have changed" warning.
+- Show coverage honestly: unverified state/topic => "coming soon".
+- Disclaimer: information, not legal advice. Suggest NALSA / lawyer.
+- Do not help evade law enforcement or commit offences.
+- No personal data stored by default.
+
+### 13.6 Rollout
+1. Central core + 3-4 states for challan, alcohol, tobacco.
+2. More states/topics + verification dashboard.
+3. All states/UTs, regional languages, voice.
+Each phase gated by accuracy test on a hand-checked question set.
